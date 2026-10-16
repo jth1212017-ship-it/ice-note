@@ -8,13 +8,24 @@ const SUPABASE_URL='https://atzsukibboxpsiqrauhn.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_MGG5CffowoGYTaniLotOMQ_jVMECyig';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
 
-const STATIC_DATA=(typeof DEFAULT_DB!=='undefined'&&Array.isArray(DEFAULT_DB))?DEFAULT_DB.map((x,i)=>({...x,id:`static-${i}-${x.id??i}`,sourceType:'static'})):[];
+const CATEGORIES=['제조·공정','원료·소재','제품·유형','품질·규격','유통·채널','마케팅·시장','용어·기타'];
+function normalizeCategory(c=''){
+  const v=String(c).trim();
+  if(CATEGORIES.includes(v)) return v;
+  if(/제조|공정|설비|생산|프리저|오버런|균질|숙성/.test(v)) return '제조·공정';
+  if(/원료|소재|성분|유지|유화|안정|당|초콜릿|우유/.test(v)) return '원료·소재';
+  if(/제품|유형|분류|아이스크림|빙과|바|콘|컵|모나카|샌드|홈/.test(v)) return '제품·유형';
+  if(/품질|규격|표시|법규|위생|검사|보관/.test(v)) return '품질·규격';
+  if(/유통|채널|CVS|편의점|대리점|물류|점포/.test(v)) return '유통·채널';
+  if(/마케팅|시장|브랜드|소비자|트렌드|매출|M\/S/.test(v)) return '마케팅·시장';
+  return '용어·기타';
+}
+const STATIC_DATA=(typeof DEFAULT_DB!=='undefined'&&Array.isArray(DEFAULT_DB))?DEFAULT_DB.map((x,i)=>({...x,category:normalizeCategory(x.category),id:`static-${i}-${x.id??i}`,sourceType:'static'})):[];
 let data=[...STATIC_DATA];
 let saved=JSON.parse(localStorage.getItem('ice-saved')||'[]');
 let category='전체';
 let mode='knowledge';
 let session=null;
-const CATEGORIES=['제조·공정','원료·소재','제품·유형','품질·규격','유통·채널','마케팅·시장','용어·기타'];
 let recent=JSON.parse(localStorage.getItem('ice-recent')||'[]');
 
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -52,7 +63,6 @@ function render(){
   document.getElementById('count').textContent=arr.length+'개';
   const empty=q?`<div class="empty">검색 결과가 없어요 🧊<br><button class="btn" style="margin-top:14px" onclick="alert('다음 단계에서 AI 검색 기능을 연결합니다.')">✨ AI로 찾아보기</button></div>`:'<div class="empty">등록된 지식이 없어요 🧊</div>';
   document.getElementById('list').innerHTML=arr.length?arr.map(x=>`<div class="card" onclick="detail('${x.id}')"><button class="star" onclick="event.stopPropagation();toggleSave('${x.id}')">${saved.includes(String(x.id))?'⭐':'☆'}</button><span class="pill">${esc(x.category)}</span><h3>${esc(x.name)}</h3><p>${esc(x.definition)}</p></div>`).join(''):empty;
-  if(mode==='knowledge' && (q||category!=='전체')) showResults();
 }
 function previewProductAnalysis(){
   const q=document.getElementById('productQ').value.trim(); if(!q){alert('제품명을 입력해주세요.');return;}
@@ -163,7 +173,7 @@ async function deleteEntry(id){
 async function loadSupabaseKnowledge(){
   const {data:rows,error}=await sb.from('knowledge').select('*').order('id',{ascending:true});
   if(error){console.error('Supabase load failed:',error);document.getElementById('list').innerHTML='<div class="empty">DB 연결을 확인해주세요.</div>';return;}
-  const dbData=(rows||[]).map(r=>({id:`db-${r.id}`,dbId:r.id,sourceType:'db',name:r.term||'',category:r.category||'용어·기타',definition:r.definition||'',point:r.practical_point||'',example:r.description||'',source:r.source_name||'',url:r.source_url||''}));
+  const dbData=(rows||[]).map(r=>({id:`db-${r.id}`,dbId:r.id,sourceType:'db',name:r.term||'',category:normalizeCategory(r.category||'용어·기타'),definition:r.definition||'',point:r.practical_point||'',example:r.description||'',source:r.source_name||'',url:r.source_url||''}));
   // 같은 용어가 Supabase에도 있으면 관리자가 저장한 DB 버전을 우선 표시합니다.
   const dbTerms=new Set(dbData.map(x=>(x.name||'').trim().toLowerCase()));
   data=[...STATIC_DATA.filter(x=>!dbTerms.has((x.name||'').trim().toLowerCase())),...dbData];
