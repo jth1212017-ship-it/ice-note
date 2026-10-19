@@ -46,8 +46,8 @@ function switchTab(t,el){
   if(t==='settings') renderAdmin();
 }
 function renderHome(){
-  document.getElementById('recentChips').innerHTML=recent.length?recent.slice(0,5).map(q=>`<button class="recent-chip" onclick="searchRecent(${JSON.stringify(q)})">${esc(q)}</button>`).join(''):'<span class="muted">아직 최근 검색이 없어요.</span>';
-  document.getElementById('categoryGrid').innerHTML=CATEGORIES.map(c=>{const n=data.filter(x=>x.category===c).length;return `<button class="category-card" onclick="openCategory(${JSON.stringify(c)})">${esc(c)}<small>${n}개 지식</small></button>`}).join('');
+  document.getElementById('recentChips').innerHTML=recent.length?recent.slice(0,5).map(q=>`<button class="recent-chip" onclick="searchRecent(this.dataset.query)" data-query="${esc(q)}">${esc(q)}</button>`).join(''):'<span class="muted">아직 최근 검색이 없어요.</span>';
+  document.getElementById('categoryGrid').innerHTML=CATEGORIES.map(c=>{const n=data.filter(x=>x.category===c).length;return `<button class="category-card" onclick="openCategory(this.dataset.category)" data-category="${esc(c)}">${esc(c)}<small>${n}개 지식</small></button>`}).join('');
 }
 function addRecent(q){ q=q.trim(); if(!q)return; recent=[q,...recent.filter(x=>x!==q)].slice(0,5); localStorage.setItem('ice-recent',JSON.stringify(recent)); renderHome(); }
 function clearRecent(){ recent=[]; localStorage.removeItem('ice-recent'); renderHome(); }
