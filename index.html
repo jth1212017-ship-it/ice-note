@@ -124,6 +124,7 @@ function openEditor(x){
   document.getElementById('overlay').className='panel';
   document.getElementById('overlay').innerHTML=`<div class="sheet"><h2>${isNew?'➕ 새 지식 등록':'✏️ 지식 수정'}</h2>
   <label>용어<input id="en" value="${esc(v.name)}"></label>
+  ${isNew?`<button type="button" class="btn" id="aiFillBtn" style="width:100%;margin:8px 0 12px" onclick="fillWithAI()">✨ AI로 내용 채우기</button><div id="aiFillStatus" class="muted" style="margin:-3px 2px 12px"></div>`:''}
   <label>카테고리</label><div class="category-picker" id="categoryPicker">${CATEGORIES.map(c=>`<button type="button" class="category-option ${v.category===c?'active':''}" data-category="${c}" onclick="selectEditorCategory(this)">${c}</button>`).join('')}</div><input type="hidden" id="ec" value="${esc(CATEGORIES.includes(v.category)?v.category:'용어·기타')}">
   <label>한 줄 정의<textarea id="ed">${esc(v.definition)}</textarea></label>
   <label>실무 Point<textarea id="ep">${esc(v.point)}</textarea></label>
