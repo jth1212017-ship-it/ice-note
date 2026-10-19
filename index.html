@@ -79,7 +79,7 @@ function detail(id){
   let x=data.find(x=>String(x.id)===String(id)); if(!x)return;
   const adminButtons=session&&x.sourceType==='db'?`<button class="btn" onclick="editEntry('${x.id}')">✏️ 수정</button><button class="btn danger" onclick="deleteEntry('${x.id}')">🗑 삭제</button>`:'';
   document.getElementById('overlay').className='panel';
-  document.getElementById('overlay').innerHTML=`<div class="sheet"><button class="btn secondary" onclick="closeSheet()">✕ 닫기</button><p><span class="pill">${esc(x.category)}</span></p><h2>${esc(x.name)}</h2><h4>한 줄 정의</h4><p>${esc(x.definition)}</p><h4>💡 실무 Point</h4><p>${esc(x.point)}</p><h4>쉽게 이해하기 / 예시</h4><p>${esc(x.example)}</p><h4>🔗 출처</h4><p>${esc(x.source||'출처 미등록')} ${x.url?`<br><a class="link" href="${esc(x.url)}" target="_blank" rel="noopener">공개 참고자료 보기 ↗</a>`:''}</p><div class="actions"><button class="btn secondary" onclick="toggleSave('${x.id}');detail('${x.id}')">${saved.includes(String(x.id))?'⭐ 저장됨':'☆ 저장'}</button>${adminButtons}</div></div>`;
+  document.getElementById('overlay').innerHTML=`<div class="sheet"><div style="display:flex;justify-content:flex-end"><button class="btn secondary" onclick="closeSheet()">✕ 닫기</button></div><p><span class="pill">${esc(x.category)}</span></p><h2>${esc(x.name)}</h2><h4>한 줄 정의</h4><p>${esc(x.definition)}</p><h4>💡 실무 Point</h4><p>${esc(x.point)}</p><h4>쉽게 이해하기 / 예시</h4><p>${esc(x.example)}</p><h4>🔗 출처</h4><p>${esc(x.source||'출처 미등록')} ${x.url?`<br><a class="link" href="${esc(x.url)}" target="_blank" rel="noopener">공개 참고자료 보기 ↗</a>`:''}</p><div class="actions"><button class="btn secondary" onclick="toggleSave('${x.id}');detail('${x.id}')">${saved.includes(String(x.id))?'⭐ 저장됨':'☆ 저장'}</button>${adminButtons}</div></div>`;
 }
 
 function closeSheet(){document.getElementById('overlay').className='hidden'}
@@ -130,7 +130,28 @@ function openEditor(x){
   <label>쉽게 이해하기 / 예시<textarea id="ee">${esc(v.example)}</textarea></label>
   <label>출처<input id="es" value="${esc(v.source)}"></label>
   <label>출처 URL<input id="eu" value="${esc(v.url)}"></label>
-  <div class="actions"><button class="btn secondary" onclick="closeSheet()">취소</button><button class="btn" onclick="saveEntry(${isNew?'null':`'${v.id}'`})">저장</button></div></div>`;
+  <div class="actions"><button class="btn secondary" onclick="closeSheet()">취소</button><button class="btn" onclick="saveEntry(${isNew?'null':`'${v.id}'`})">${isNew?'✓ 승인 후 저장':'저장'}</button></div></div>`;
+}
+
+async function fillWithAI(){
+  if(!session){alert('관리자 로그인이 필요합니다.');return;}
+  const term=document.getElementById('en')?.value.trim();
+  if(!term){alert('먼저 용어를 입력해주세요.');document.getElementById('en')?.focus();return;}
+  const btn=document.getElementById('aiFillBtn'); const status=document.getElementById('aiFillStatus');
+  if(btn){btn.disabled=true;btn.textContent='✨ AI가 내용 작성 중…';}
+  if(status)status.textContent='AI 결과는 자동 저장되지 않습니다. 내용을 확인·수정한 뒤 승인해 주세요.';
+  try{
+    const {data:ai,error}=await sb.functions.invoke('ice-note-ai',{body:{term}});
+    if(error)throw error; if(!ai||ai.error)throw new Error(ai?.error||'AI 응답을 읽을 수 없습니다.');
+    const cat=normalizeCategory(ai.category||'용어·기타');
+    document.getElementById('en').value=ai.term||term; document.getElementById('ec').value=cat;
+    document.querySelectorAll('#categoryPicker .category-option').forEach(b=>b.classList.toggle('active',b.dataset.category===cat));
+    document.getElementById('ed').value=ai.definition||''; document.getElementById('ep').value=ai.practical_point||'';
+    const description=(ai.description||'').trim(), example=(ai.example||'').trim();
+    document.getElementById('ee').value=[description,example?`예시: ${example}`:''].filter(Boolean).join('\n\n');
+    if(status)status.textContent='✓ AI 초안 작성 완료 · 내용을 확인/수정한 뒤 「승인 후 저장」을 눌러주세요.';
+  }catch(e){console.error('AI fill failed:',e);if(status)status.textContent='AI 내용을 불러오지 못했습니다.';alert('AI 내용 채우기에 실패했습니다. 잠시 후 다시 시도해주세요.');}
+  finally{if(btn){btn.disabled=false;btn.textContent='✨ AI로 내용 채우기';}}
 }
 
 function selectEditorCategory(btn){document.querySelectorAll('#categoryPicker .category-option').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('ec').value=btn.dataset.category;}
