@@ -136,21 +136,20 @@ function openEditor(x){
 async function fillWithAI(){
   if(!session){alert('관리자 로그인이 필요합니다.');return;}
   const term=document.getElementById('en')?.value.trim();
-  if(!term){alert('먼저 용어를 입력해주세요.');document.getElementById('en')?.focus();return;}
+  if(!term){alert('먼저 용어를 입력해주세요.');return;}
   const btn=document.getElementById('aiFillBtn'); const status=document.getElementById('aiFillStatus');
   if(btn){btn.disabled=true;btn.textContent='✨ AI가 내용 작성 중…';}
-  if(status)status.textContent='AI 결과는 자동 저장되지 않습니다. 내용을 확인·수정한 뒤 승인해 주세요.';
+  if(status)status.textContent='AI 결과는 자동 저장되지 않습니다.';
   try{
     const {data:ai,error}=await sb.functions.invoke('ice-note-ai',{body:{term}});
-    if(error)throw error; if(!ai||ai.error)throw new Error(ai?.error||'AI 응답을 읽을 수 없습니다.');
+    if(error)throw error; if(!ai||ai.error)throw new Error(ai?.error||'AI 응답 오류');
     const cat=normalizeCategory(ai.category||'용어·기타');
     document.getElementById('en').value=ai.term||term; document.getElementById('ec').value=cat;
     document.querySelectorAll('#categoryPicker .category-option').forEach(b=>b.classList.toggle('active',b.dataset.category===cat));
     document.getElementById('ed').value=ai.definition||''; document.getElementById('ep').value=ai.practical_point||'';
-    const description=(ai.description||'').trim(), example=(ai.example||'').trim();
-    document.getElementById('ee').value=[description,example?`예시: ${example}`:''].filter(Boolean).join('\n\n');
-    if(status)status.textContent='✓ AI 초안 작성 완료 · 내용을 확인/수정한 뒤 「승인 후 저장」을 눌러주세요.';
-  }catch(e){console.error('AI fill failed:',e);if(status)status.textContent='AI 내용을 불러오지 못했습니다.';alert('AI 내용 채우기에 실패했습니다. 잠시 후 다시 시도해주세요.');}
+    document.getElementById('ee').value=[ai.description||'',ai.example?`예시: ${ai.example}`:''].filter(Boolean).join('\n\n');
+    if(status)status.textContent='✓ AI 초안 완료 · 확인/수정 후 승인해 주세요.';
+  }catch(e){console.error(e); if(status)status.textContent='AI 내용을 불러오지 못했습니다.'; alert('AI 내용 채우기에 실패했습니다.');}
   finally{if(btn){btn.disabled=false;btn.textContent='✨ AI로 내용 채우기';}}
 }
 
