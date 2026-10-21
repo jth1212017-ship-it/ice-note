@@ -118,10 +118,39 @@ async function retryAiKnowledge(){
 }
 
 let reactionPeriod='1m';
+function localDateString(d){
+  const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function shiftLocalMonths(base,months){
+  const d=new Date(base.getFullYear(),base.getMonth(),base.getDate());
+  const targetMonth=d.getMonth()+months;
+  const targetYear=d.getFullYear()+Math.floor(targetMonth/12);
+  const normalizedMonth=((targetMonth%12)+12)%12;
+  const lastDay=new Date(targetYear,normalizedMonth+1,0).getDate();
+  return new Date(targetYear,normalizedMonth,Math.min(d.getDate(),lastDay));
+}
+function syncReactionDates(){
+  const wrap=document.getElementById('customPeriod'),start=document.getElementById('reactionStartDate'),end=document.getElementById('reactionEndDate');
+  if(!wrap||!start||!end)return;
+  wrap.classList.remove('hidden');
+  const custom=reactionPeriod==='custom';
+  start.readOnly=!custom; end.readOnly=!custom;
+  start.style.opacity=custom?'1':'.72'; end.style.opacity=custom?'1':'.72';
+  start.style.cursor=custom?'auto':'default'; end.style.cursor=custom?'auto':'default';
+  if(custom){
+    if(!start.value||!end.value){const today=new Date();end.value=localDateString(today);start.value=localDateString(shiftLocalMonths(today,-1));}
+    return;
+  }
+  const today=new Date();
+  const months=reactionPeriod==='1y'?-12:reactionPeriod==='3m'?-3:-1;
+  start.value=localDateString(shiftLocalMonths(today,months));
+  end.value=localDateString(today);
+}
 function selectReactionPeriod(btn){
   reactionPeriod=btn.dataset.period||'1m';
   document.querySelectorAll('#periodRow .period-btn').forEach(b=>b.classList.toggle('active',b===btn));
-  document.getElementById('customPeriod').classList.toggle('hidden',reactionPeriod!=='custom');
+  syncReactionDates();
 }
 
 function reactionSources(items=[]){
@@ -344,4 +373,6 @@ async function initAuth(){
 document.getElementById('q').addEventListener('input',()=>{if(document.getElementById('q').value.trim())showResults();else if(mode==='knowledge')goKnowledgeHome();});
 initAuth();
 loadSupabaseKnowledge();
+
+window.addEventListener('DOMContentLoaded',()=>{syncReactionDates();});
 </script></html>
